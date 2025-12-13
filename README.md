@@ -41,19 +41,19 @@
     ```
 
 3.  **配置文件**
-    - 复制 `config.yaml.example` **删除掉.example 并重命名为 `config.yaml`**。
+    - 修改 `config.yaml.example` **删除文件名.example 重命名为 `config.yaml`** 重要！！！。
     - 编辑 `config.yaml` 填入你的信息（具体见下面使用方法）：
         - `yaml_path`: 你的 Clash 配置文件 (**.yaml**) 的绝对路径。
         - `clash_api_secret`: 你的 API 密钥 (如果有的话)。
 
 ## 🚀 使用方法
 
-1.  打开你的 Clash 客户端 (例如 Clash Verge) 将当前clash正在运行的订阅配置文件切换为你想要测试的订阅配置文件， 然后获取该配置文件的yaml文件绝对路径, 在config.yaml中配置yaml_path。
+1.  打开你的 Clash 客户端 (例如 Clash Verge) 将当前clash正在运行的订阅配置文件切换为你想要测试的订阅， 然后获取该配置文件的yaml文件绝对路径, 在config.yaml中配置yaml_path。
     右键配置文件选择打开文件
     ![](assets/clash-open-yaml.png)
     通过vscode获取path
     ![](assets/clash-open-yaml-vscode.png)
-    通过记事本获取path, 鼠标悬停展示但无法复制，需要在对应的文件夹中找到再复制
+    或者通过记事本获取path, 鼠标悬停展示但无法复制，需要在对应的文件夹中找到再复制
     ![](assets/clash-open-yaml-jsb.png)
 
 1.  确保 **External Controller** (外部控制) 已在设置中开启，并在config.yaml中配置clash_api_url与clash_api_secret与之对应。密码随便设置
