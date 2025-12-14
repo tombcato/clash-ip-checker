@@ -4,6 +4,14 @@ import aiohttp
 import urllib.parse
 import os
 import sys
+import io
+
+# Fix Windows console encoding for Unicode characters (emoji, etc.)
+# Also enable line buffering so output appears immediately
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+
 from utils.config_loader import load_config
 from core.ip_checker import IPChecker
 
@@ -20,6 +28,11 @@ CLASH_API_SECRET = cfg.get('clash_api_secret', "")
 SELECTOR_NAME = cfg.get('selector_name', "GLOBAL")
 # Output suffix
 OUTPUT_SUFFIX = cfg.get('output_suffix', "_checked")
+# Performance settings
+SWITCH_DELAY = cfg.get('switch_delay', 0.5)  # Delay after switching proxy (seconds)
+RETRY_DELAY = cfg.get('retry_delay', 1)       # Delay before retry (seconds)
+FAST_MODE = cfg.get('fast_mode', True)        # Use fast API-only check when possible
+SKIP_ON_FAST_FAIL = cfg.get('skip_on_fast_fail', True)  # Skip node if fast IP check fails (much faster)
 
 class ClashController:
     def __init__(self, api_url, secret=""):
@@ -178,22 +191,31 @@ async def process_proxies():
                 continue
 
             # 2. Wait for switch to take effect / connection reset
-            await asyncio.sleep(2) 
+            await asyncio.sleep(SWITCH_DELAY) 
 
             # 3. Check IP with Retry
             print("  -> Running IP Check...")
             res = None
-            for attempt in range(2):
-                try:
-                    # Pass the local proxy explicitly to ensure Playwright uses it
-                    res = await checker.check(proxy=local_proxy_url)
-                    if res.get('error') is None and res.get('pure_score') != '❓':
-                         break # Success
-                    if attempt == 0:
-                        print("     Retrying IP check...")
-                        await asyncio.sleep(2)
-                except Exception as e:
-                     print(f"     Check error: {e}")
+            
+            # First try fast check
+            try:
+                res = await checker.check(proxy=local_proxy_url, fast_mode=FAST_MODE, skip_browser=SKIP_ON_FAST_FAIL)
+                
+                # If fast check failed and SKIP_ON_FAST_FAIL is enabled
+                if res.get('skipped'):
+                    print("  -> Result: 【⏭️ Skipped - Connection Failed】")
+                    print("  -> Details: Node unreachable, skipping...")
+                    continue
+                    
+                if res.get('error') is None and res.get('pure_score') != '❓':
+                    pass  # Success, continue to output
+                else:
+                    # Retry once
+                    print("     Retrying IP check...")
+                    await asyncio.sleep(RETRY_DELAY)
+                    res = await checker.check(proxy=local_proxy_url, fast_mode=FAST_MODE, skip_browser=SKIP_ON_FAST_FAIL)
+            except Exception as e:
+                print(f"     Check error: {e}")
             
             if not res:
                  res = {"full_string": "【❌ Error】", "ip": "Error", "pure_score": "?", "bot_score": "?"}

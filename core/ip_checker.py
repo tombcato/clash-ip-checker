@@ -38,35 +38,104 @@ class IPChecker:
 
     async def get_simple_ip(self, proxy=None):
         """Fast IPv4 check for caching."""
-        urls = ["http://api.ipify.org", "http://v4.ident.me"]
-        for url in urls:
+        urls = ["http://api.ipify.org", "http://v4.ident.me", "http://ipinfo.io/ip"]
+        
+        async def fetch_ip(session, url):
             try:
-                # User modified timeout to 3s
-                timeout = aiohttp.ClientTimeout(total=3)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(url, proxy=proxy) as resp:
-                        if resp.status == 200:
-                            ip = (await resp.text()).strip()
-                            if re.match(r"^\d{1,3}(\.\d{1,3}){3}\d{1,3}$", ip):
-                                return ip
+                async with session.get(url, proxy=proxy) as resp:
+                    if resp.status == 200:
+                        ip = (await resp.text()).strip()
+                        if re.match(r"^\d{1,3}(\.\d{1,3}){3}$", ip):
+                            return ip
             except Exception:
-                continue 
+                pass
+            return None
+        
+        try:
+            timeout = aiohttp.ClientTimeout(total=2)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                # Try all sources concurrently, return first success
+                tasks = [fetch_ip(session, url) for url in urls]
+                for coro in asyncio.as_completed(tasks):
+                    result = await coro
+                    if result:
+                        return result
+        except Exception:
+            pass
+        return None
+    
+    async def get_ip_info_fast(self, ip, proxy=None):
+        """Get IP info from fast API (ip-api.com supports batch)."""
+        try:
+            timeout = aiohttp.ClientTimeout(total=3)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                # ip-api.com free tier - no proxy needed for this
+                url = f"http://ip-api.com/json/{ip}?fields=status,message,country,isp,org,hosting,proxy"
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if data.get('status') == 'success':
+                            # Determine if datacenter/residential
+                            is_hosting = data.get('hosting', False)
+                            is_proxy = data.get('proxy', False)
+                            
+                            # Estimate score based on hosting/proxy flags
+                            if is_hosting and is_proxy:
+                                score = 75
+                            elif is_hosting:
+                                score = 50
+                            elif is_proxy:
+                                score = 40
+                            else:
+                                score = 15
+                            
+                            ip_type = "机房" if is_hosting else "住宅"
+                            ip_src = "代理" if is_proxy else "原生"
+                            
+                            return {
+                                "ip": ip,
+                                "pure_score": f"{score}%",
+                                "pure_emoji": self.get_emoji(f"{score}%"),
+                                "bot_score": f"{score * 0.5:.1f}%",
+                                "bot_emoji": self.get_emoji(f"{score * 0.5:.1f}%"),
+                                "ip_attr": ip_type,
+                                "ip_src": ip_src,
+                                "country": data.get('country', 'Unknown'),
+                                "isp": data.get('isp', 'Unknown'),
+                                "full_string": f"【{self.get_emoji(f'{score}%')}{self.get_emoji(f'{score * 0.5:.1f}%')} {ip_type}|{ip_src}】",
+                                "error": None,
+                                "fast_check": True
+                            }
+        except Exception as e:
+            pass
         return None
 
-    async def check(self, url="https://ippure.com/", proxy=None, timeout=20000):
+    async def check(self, url="https://ippure.com/", proxy=None, timeout=15000, fast_mode=True, skip_browser=False):
         if not self.browser:
             await self.start()
         
         # 1. Cleaner Fast IP & Cache Logic
         current_ip = await self.get_simple_ip(proxy)
         if current_ip and current_ip in self.cache:
-            print(f"     [Cache Hit] {current_ip}")
+            print(f"     [Cache Hit] {current_ip}", flush=True)
             return self.cache[current_ip]
         
         if current_ip:
-            print(f"     [New IP] {current_ip}")
+            print(f"     [New IP] {current_ip}", flush=True)
+            
+            # Try fast API check first (much faster than browser)
+            if fast_mode:
+                fast_result = await self.get_ip_info_fast(current_ip, proxy)
+                if fast_result:
+                    print(f"     [Fast API] Score: {fast_result['pure_score']}", flush=True)
+                    self.cache[current_ip] = fast_result
+                    return fast_result
         else:
-            print("     [Warning] Fast IP check failed. Scanning with browser...")
+            # Fast IP check failed - node may be unreachable
+            if skip_browser:
+                print("     [Skip] Node unreachable, skipping browser check...", flush=True)
+                return {"skipped": True, "error": "Fast IP check failed"}
+            print("     [Warning] Fast IP check failed. Scanning with browser...", flush=True)
 
         # 2. Browser Check (Logic from ipcheck.py)
         context_args = {
@@ -95,11 +164,11 @@ class IPChecker:
             
             # Logic from ipcheck.py - Optimized wait
             try:
-                await page.wait_for_selector("text=人机流量比", timeout=10000)
+                await page.wait_for_selector("text=人机流量比", timeout=6000)
             except:
                 pass 
 
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(500)
             text = await page.inner_text("body")
 
             # 1. IPPure Score
