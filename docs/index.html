@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash IP Checker - 节点纯净度检测与标记</title>
+    <meta name="description" content="全自动 Clash 代理节点检测工具，集成 IPPure 纯净度检测、自动切换节点、Bot 评分筛选。">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+    <style>
+        /* CSS for Typing Animation */
+        .terminal-body .line {
+            visibility: hidden;
+            /* Use visibility to preserve height/layout */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text"><span class="logo-highlight">Clash</span> IP Checker</div>
+            </div>
+            <div class="header-right">
+                <!-- Theme Toggle -->
+                <button class="theme-toggle" id="themeToggle" aria-label="Switch Theme">
+                    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" style="display: none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+
+                <!-- GitHub Star Button -->
+                <a href="https://github.com/tombcato/clash-ip-checker" target="_blank" class="github-btn">
+                    <!-- GitHub Octocat Icon -->
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                        </path>
+                    </svg>
+                    <span>Star</span>
+                    <span class="star-count" id="starCount">...</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <main>
+            <section class="hero">
+                <h1>让节点质量 <br><span class="gradient-text">一目了然</span></h1>
+                <p>全自动检测 Clash 节点 IP 纯净度、Bot 分数与风险属性（<a href="https://ippure.com" target="_blank"
+                        style="color: var(--accent-primary); border-bottom: 1px dashed var(--accent-primary);">IPPure</a>），自动生成节点标注配置避免选到垃圾节点
+                </p>
+                <a href="https://github.com/tombcato/clash-ip-checker#readme" target="_blank"
+                    class="cta-button">立即开始</a>
+
+                <!-- Terminal Mockup -->
+                <div class="terminal-wrapper">
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="terminal-body" id="terminalBody">
+                            <span class="line"><span class="prompt">➜</span> <span class="green">python</span>
+                                clash_automator.py</span>
+                            <span class="line dim">[INFO] Loading config from config.yaml...</span>
+                            <br>
+                            <span class="line">[1/7] Progress...</span>
+                            <span class="line">Testing: HKG-01 倍率:1</span>
+                            <span class="line"> -> Switching GLOBAL ...</span>
+                            <span class="line"> -> Running IP Check...</span>
+                            <span class="line dim"> -> Result: 【🟢🔴 机房|原生】</span>
+                            <span class="line dim"> -> Details: IP: 1.1.1.1 | Score: 29% | Bot: 86.80%</span>
+                            <br>
+                            <span class="line cursor"><span class="green">Success!</span> Saved updated config to
+                                _checked.yaml</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Comparison Section (Moved Up) -->
+            <section class="comparison">
+                <h2>效果对比</h2>
+                <div class="comparison-container">
+                    <div class="comp-box">
+                        <span class="tag before">Before</span>
+                        <img src="assets/clash-node-uncheck.png" alt="Before Check">
+                    </div>
+                    <div class="comp-box">
+                        <span class="tag after">After</span>
+                        <img src="assets/clash-node-checked.png" alt="After Check">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features -->
+            <section class="features">
+                <h2>核心特性</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <h3>IP 纯净度检测</h3>
+                        <p>集成 IPPure 数据源，深度检测 IP 的作弊值、Bot 分数及是否为数据中心 IP，确保账号安全。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                            </svg>
+                        </div>
+                        <h3>全自动运行</h3>
+                        <p>通过 Clash External API 自动切换节点并测试。无需人工干预，支持断点续传与失败重试。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </div>
+                        <h3>智能重写配置</h3>
+                        <p>测试结果自动追加到节点名称后，支持更新 Proxy Groups。输出即用，无需手动修改配置文件。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Result Interpretation (Replaced Usage) -->
+            <section class="results-guide">
+                <h2>结果解读</h2>
+                <div class="guide-grid">
+                    <div class="guide-item">
+                        <span class="guide-emoji">🟢</span>
+                        <h3 class="pure">Pure (纯净)</h3>
+                        <p>IP 纯净度高，Bot 分数低，适合注册、登录等敏感操作。</p>
+                    </div>
+                    <div class="guide-item">
+                        <span class="guide-emoji">🟡</span>
+                        <h3 class="normal">Normal (一般)</h3>
+                        <p>存在一定风险，或 Bot 分数适中，日常浏览无碍。</p>
+                    </div>
+                    <div class="guide-item">
+                        <span class="guide-emoji">🔴</span>
+                        <h3 class="risk">Risk (高危)</h3>
+                        <p>IP 纯净度低或被标记为黑名单/数据中心，不仅限于流媒体解锁失败。</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-text">
+                &copy; 2025 Clash IP Checker. <br>Built for the community.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // --- Theme Toggle Logic ---
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.querySelector('.sun-icon');
+        const moonIcon = document.querySelector('.moon-icon');
+        const html = document.documentElement;
+
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) {
+            html.setAttribute('data-theme', currentTheme);
+            updateIcons(currentTheme);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const theme = html.getAttribute('data-theme');
+            const newTheme = theme === 'light' ? 'dark' : 'light';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        });
+
+        function updateIcons(theme) {
+            if (theme === 'light') {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            } else {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            }
+        }
+
+        // --- Fetch GitHub Stars ---
+        async function fetchGitHubStars() {
+            try {
+                const response = await fetch('https://api.github.com/repos/tombcato/clash-ip-checker');
+                if (response.ok) {
+                    const data = await response.json();
+                    const stars = data.stargazers_count;
+                    const starEl = document.getElementById('starCount');
+                    if (starEl) starEl.textContent = stars;
+                } else {
+                    console.warn("GitHub API Limit or Error");
+                    document.getElementById('starCount').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+                document.getElementById('starCount').style.display = 'none';
+            }
+        }
+
+        fetchGitHubStars();
+
+        // --- Terminal Typing Animation ---
+        function typeWriter() {
+            const terminalBody = document.getElementById('terminalBody');
+            const lines = terminalBody.querySelectorAll('.line');
+            let delay = 0;
+
+            lines.forEach((line, index) => {
+                // Vary speed for realism: initial command fast, checks require wait
+                let currentDelay = 400; // default speed between lines
+
+                if (index === 0) currentDelay = 100; // First line appears quick
+                if (index === 1) currentDelay = 800; // "Loading..." takes a moment
+                if (index > 5) currentDelay = 600;   // Results take a bit
+
+                delay += currentDelay;
+
+                setTimeout(() => {
+                    line.style.visibility = 'visible'; // Reveal line without moving layout
+                    // Scroll to bottom if overflow
+                    terminalBody.scrollTop = terminalBody.scrollHeight;
+                }, delay);
+            });
+        }
+
+        // Start animation after a slight delay
+        setTimeout(typeWriter, 800);
+
+    </script>
+</body>
+
+</html>
