@@ -25,14 +25,29 @@ sudo apt-get update && sudo apt-get install -y docker.io docker-compose git
 # 克隆代码
 git clone https://github.com/tombcato/clash-ip-checker.git
 cd clash-ip-checker
+# 2. 切换Docker分支
+git checkout docker
 
 # 运行
 sudo docker-compose up -d --build
 ```
 
-### 3. 访问
+### 3. 配置防火墙规则 (重要)
 
-访问 `http://[External_IP]:8000/ipcheck`。
+您截图中的界面是正确的 ("VPC firewall rules")。默认情况下 GCP 只开放 80/443/22 端口，您需要手动开放 8000 端口。
+
+1.  在 GCP 控制台点击顶部 **"Create firewall rule"** (或“创建防火墙规则”)。
+2.  填写如下信息：
+    *   **Name (名称)**: `allow-clash-8000`
+    *   **Targets (目标)**: 选择 `All instances in the network` (网络中的所有实例)。
+    *   **Source filter (来源过滤)**: `IPv4 ranges`
+    *   **Source IPv4 ranges (来源 IP 范围)**: `0.0.0.0/0` (允许所有 IP 访问)。
+    *   **Protocols and ports (协议和端口)**:
+        *   勾选 `TCP`
+        *   在输入框填入 `8000`
+3.  点击 **Create**。
+
+等待几秒后，防火墙规则生效，您就可以通过 `http://[External_IP]:8000/ipcheck` 访问了。
 
 ---
 

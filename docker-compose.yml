@@ -6,7 +6,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/root/.config/mihomo/data
-      - .:/app
+      # - .:/app
     environment:
       - TZ=Asia/Shanghai
       - DATA_DIR=/root/.config/mihomo/data
