@@ -1,4 +1,4 @@
-# ⚡ Clash IP Checker
+# ⚡ Clash IP Checker 👉 [Docker Demo](https://tombcat.space/ipcheck)
 
 一个基于 **Clash Meta (Mihomo)** 和 **FastAPI** 的高性能 IP 风险检测工具，
 专为筛选高质量节点设计，提供 API 订阅转换服务 和 Web 可视化面板。
@@ -10,12 +10,12 @@
 ## 核心功能
 
 *   **API 订阅转换**: 可直接拼成带检测结果的订阅链接替换原始订阅， 可多次刷新该链接，IP检测结果会通过该链接增量更新
-    *   👉 **订阅格式**: 
-    本地docker服务： `http://127.0.0.1:8000/check?url=[原始订阅链接]`
+    *   👉 **订阅格式**:   
+    本地docker服务： `http://127.0.0.1:8000/check?url=[原始订阅链接]`  
     云服务器： `http://[服务器IP]:8000/check?url=[原始订阅链接]`
 *   **Web 可视化面板**: 现代化的 Vue/Tailwind 界面，实时显示检测进度和日志。
-    *   👉 **访问地址**: 
-        本地docker服务：`http://127.0.0.1:8000/ipcheck`
+    *   👉 **访问地址**:   
+        本地docker服务：`http://127.0.0.1:8000/ipcheck`  
         云服务器：`http://[服务器IP]:8000/ipcheck`
 *   **智能缓存系统**:
     *   基于内容 MD5 的去重缓存 (默认1小时有效期)。
@@ -40,10 +40,11 @@ git checkout docker
 docker-compose up -d --build
 ```
 
-启动后，访问 **[http://127.0.0.1:8000/ipcheck](http://127.0.0.1:8000/ipcheck)** 即可使用。
+启动后，访问 **[http://127.0.0.1:8000/ipcheck](http://127.0.0.1:8000/ipcheck)** 即可使用。  
+我自己云部署的Demo【仅测试】: https://tombcat.space/ipcheck
 ![alt text](assets/docker-home.png)
 
-也可以直接在Clash中添加替换的订阅链接 `http://127.0.0.1:8000/check?url=[原始订阅链接]`, 添加后通过刷新订阅看到检测结果，订阅不多的话一般一分钟可以完全检测完成，未完成的话可以继续刷新，直到检测完成
+也可以直接在Clash中添加替换的订阅链接 `http://127.0.0.1:8000/check?url=[原始订阅链接]`, 添加后通过刷新订阅看到检测结果，订阅不多的话一般一分钟可以完全检测完成，未完成的话可以继续刷新，直到检测完成，也可前往 http://127.0.0.1:8000/ipcheck 查看进度
 ![alt text](assets/docker-clash-config.png)
 
 
