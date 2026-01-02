@@ -180,36 +180,41 @@ async def ip_check(request: Request, url: str = Query(..., description="Subscrip
         # Check if this specific URL has a job in queue or running
         is_active = job_manager.is_active_task(url)
         
-    
-        if exists:
-            if (in_time_cache or is_active):
-                print(f"[INFO] Hit cache/reuse for {file_name} (in_time_cache={in_time_cache}, active={is_active}).", flush=True)
-            
-                # If it's NOT active (meaning valid cache hit), mark frontend complete immediately.
-                # If it IS active, we do nothing -> Frontend connects to event stream of active job.
-                if not is_active:
-                    await job_manager.register_completed(url)
-                    
-                return FileResponse(file_path, media_type="application/x-yaml", filename="checked.yaml")
-            else:
-                print(f"[INFO] Cache stale for {file_name}, re-triggering.", flush=True)
-                save_file(file_path, content)
-        else:
-            print(f"[INFO] New task for {file_name}.", flush=True)
-            if not save_file(file_path, content):
-                 return PlainTextResponse("Internal Write Error", status_code=500)
-
-        # CHECK QUEUE LIMIT
+        # 5. 缓存命中：直接返回
+        if exists and (in_time_cache or is_active):
+            print(f"[INFO] Hit cache/reuse for {file_name} (in_time_cache={in_time_cache}, active={is_active}).", flush=True)
+            if not is_active:
+                await job_manager.register_completed(url)
+            return FileResponse(file_path, media_type="application/x-yaml", filename="checked.yaml")
+        
+        # 6. 先检查队列容量（在保存文件之前）
         q_info = job_manager.get_queue_info()
-        # Ensure we handle potential None types if any, though implementation seems safe
         total_active = q_info["queue_size"] + (1 if q_info["running_job"] else 0)
         
         if total_active >= config.max_queue_size:
-            print(f"[WARN] Queue full ({total_active} >= {config.max_queue_size}). Returning original file without check.", flush=True)
-            # Return original file with special header for frontend to detect
-            return FileResponse(file_path, media_type="application/x-yaml", filename="clash.yaml",headers={"X-QC-Queue-Full": "1"})
+            print(f"[WARN] Queue full ({total_active} >= {config.max_queue_size}).", flush=True)
+            if exists:
+                # 文件已存在（可能有旧的检测结果），返回已有文件
+                print(f"[INFO] Returning existing file (may contain old results).", flush=True)
+                return FileResponse(file_path, media_type="application/x-yaml", filename="clash.yaml", headers={"X-QC-Queue-Full": "1"})
+            else:
+                # 新文件，队列满无法处理，返回 503
+                return PlainTextResponse(
+                    "服务器繁忙，请稍后重试。当前检测队列已满。", 
+                    status_code=503,
+                    headers={"X-QC-Queue-Full": "1"}
+                )
+        
+        # 7. 队列未满，保存新文件（仅首次请求）
+        if not exists:
+            print(f"[INFO] New task for {file_name}.", flush=True)
+            if not save_file(file_path, content):
+                return PlainTextResponse("Internal Write Error", status_code=500)
+        else:
+            # 缓存过期，保留已有文件，直接重新检测
+            print(f"[INFO] Cache stale for {file_name}, re-triggering (keeping existing file).", flush=True)
 
-        # Trigger Job with IP Limiting
+        # 8. Trigger Job with IP Limiting
         try:
              await job_manager.submit_job(url, file_path, user_ip=request.client.host)
         except ValueError as ve:
@@ -255,7 +260,7 @@ async def stream_status(url: str = Query(..., description="Job URL")):
             
             # Retrieve queued logs to ensure we don't miss fast updates
             job_obj = job_manager.jobs.get(url)
-            logs = job_obj.get_and_clear_logs() if job_obj else []
+            logs = await job_obj.get_and_clear_logs() if job_obj else []
 
             if not logs:
                 # No new logs, just send current state (heartbeat)

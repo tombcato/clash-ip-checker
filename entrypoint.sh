@@ -12,6 +12,7 @@ mkdir -p /root/.config/mihomo
 cat <<EOF > /root/.config/mihomo/config.yaml
 log-level: error
 mode: global
+mixed-port: 7890
 external-controller: 0.0.0.0:9090
 dns:
   enable: true

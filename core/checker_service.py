@@ -70,12 +70,23 @@ class CheckerService:
             
         return result
 
+    def _strip_old_tag(self, name: str) -> str:
+        """去除节点名中已有的检测标注 【...】"""
+        import re
+        # 匹配 【任意内容】 格式的标注，可能有多个
+        # 例如: "香港01 【🟢 住宅|原生】" → "香港01"
+        # 例如: "日本02 【❌ 失败】" → "日本02"
+        return re.sub(r'\s*【[^】]*】', '', name).strip()
+
     def _format_name(self, old_name: str, res: dict) -> str:
+        # 先去掉已有的标注
+        base_name = self._strip_old_tag(old_name)
+        
         if res["error"]:
-            return f"{old_name} 【❌ 失败】"
+            return f"{base_name} 【❌ 失败】"
             
         info = f"{res['ip_attr']}|{res['ip_src']}"
-        return f"{old_name} 【{res['pure_emoji']} {info}】"
+        return f"{base_name} 【{res['pure_emoji']} {info}】"
 
     def atomic_save(self, data: dict, file_path: str):
         """Saves YAML to .tmp and renames to target."""
@@ -173,27 +184,30 @@ class CheckerService:
                     
                     # Update Name
                     new_name = self._format_name(name, res)
-                print(f"       => {new_name}", flush=True)
-                p_config['name'] = new_name
-                
-                # Update in proxy-groups
-                if 'proxy-groups' in yaml_data:
-                    for g in yaml_data['proxy-groups']:
-                        if 'proxies' in g:
-                            g['proxies'] = [new_name if pn == name else pn for pn in g['proxies']]
+                    print(f"       => {new_name}", flush=True)
+                    p_config['name'] = new_name
+                    
+                    # Update in proxy-groups
+                    if 'proxy-groups' in yaml_data:
+                        for g in yaml_data['proxy-groups']:
+                            if 'proxies' in g:
+                                g['proxies'] = [new_name if pn == name else pn for pn in g['proxies']]
 
-                # ATOMIC WRITE execution
-                self.atomic_save(yaml_data, file_path)
-                checked_count += 1
-                
-                # Notify UI of result
-                if progress_cb:
-                    # Show detailed result in logs
-                    log_msg = f"Result: IP: {res['ip']}  污染度: {res['pure_score']}  {res['ip_attr']} {res['ip_src']}"
-                    await progress_cb(checked_count, total, log_msg)
-                
+                    # ATOMIC WRITE execution
+                    self.atomic_save(yaml_data, file_path)
+                    checked_count += 1
+                    
+                    # Notify UI of result
+                    if progress_cb:
+                        # Show detailed result in logs
+                        log_msg = f"Result: IP: {res['ip']}  污染度: {res['pure_score']}  {res['ip_attr']} {res['ip_src']}"
+                        await progress_cb(checked_count, total, log_msg)
+                    
+                    # 也打印到控制台日志
+                    print(f"       => IP: {res['ip']} | 污染度: {res['pure_score']} | {res['ip_attr']} | {res['ip_src']}", flush=True)
                 else:
                     print(f"[WARN] Could not switch to {name}", flush=True)
+                    checked_count += 1  # 即使失败也要计数，保证进度条准确
                     if progress_cb:
                         await progress_cb(checked_count, total, f"Error: Could not switch to {display_name}")
 

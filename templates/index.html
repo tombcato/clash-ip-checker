@@ -497,8 +497,48 @@
             };
 
             evtSource.onerror = (e) => {
-                // If stream disconnects (server restart?), maybe try reconnect or just stop?
-                // console.error(e);
+                // SSE 断线重连逻辑
+                console.warn("SSE connection error", e);
+                evtSource.close();
+
+                // 检查是否应该重连（任务未完成时才重连）
+                const lastStatus = statusBadge.innerText;
+                if (lastStatus === "检测完成" || lastStatus === "出错了" || lastStatus === "已过期") {
+                    console.log("Task already finished, not reconnecting.");
+                    return;
+                }
+
+                // 重连计数器（存储在 evtSource 对象上）
+                window.sseRetryCount = (window.sseRetryCount || 0) + 1;
+
+                if (window.sseRetryCount > 3) {
+                    console.error("SSE reconnect failed after 3 attempts");
+                    statusBadge.innerText = "连接断开";
+                    statusBadge.className = "px-3 py-1 rounded text-xs font-bold bg-red-900 text-red-200";
+                    queueBox.classList.remove('hidden');
+                    queueMsg.innerHTML = `
+                        <div class="flex justify-between items-center w-full">
+                            <span class="text-red-300">连接已断开，请刷新页面重试</span>
+                            <button onclick="location.reload()" class="bg-red-700 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold transition-colors">
+                                刷新页面
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                console.log(`SSE reconnecting in 3s... (attempt ${window.sseRetryCount}/3)`);
+                statusBadge.innerText = "重连中...";
+                statusBadge.className = "px-3 py-1 rounded text-xs font-bold bg-yellow-900 text-yellow-200 animate-pulse";
+
+                setTimeout(() => {
+                    connectStream(url);
+                }, 3000);
+            };
+
+            // 连接成功时重置重试计数
+            evtSource.onopen = () => {
+                window.sseRetryCount = 0;
             };
         }
 

@@ -11,28 +11,32 @@ class JobStatus:
         self.total = 0
         self.current = 0
         self.message = "Waiting..."
-        self.pending_logs = []  # Queue for logs to ensure none are skipped
+        self.pending_logs: List[str] = []  # Queue for logs to ensure none are skipped
+        self._logs_lock = asyncio.Lock()   # 保护 pending_logs 的并发访问
         self.submit_time = time.time()
         self.finish_time = None
         self.error = None
 
-    def update_progress(self, current: int, total: int, message: str):
+    async def update_progress(self, current: int, total: int, message: str):
         self.status = "running"
         self.current = current
         self.total = total
         self.message = message
-        self.pending_logs.append(message)
+        async with self._logs_lock:
+            self.pending_logs.append(message)
 
-    def complete(self):
+    async def complete(self):
         self.status = "completed"
         self.finish_time = time.time()
         self.message = "Done"
-        self.pending_logs.append("Done")
+        async with self._logs_lock:
+            self.pending_logs.append("Done")
 
-    def get_and_clear_logs(self) -> List[str]:
-        logs = self.pending_logs
-        self.pending_logs = []
-        return logs
+    async def get_and_clear_logs(self) -> List[str]:
+        async with self._logs_lock:
+            logs = self.pending_logs
+            self.pending_logs = []
+            return logs
 
     def fail(self, error: str):
         self.status = "error"
@@ -58,13 +62,22 @@ class JobManager:
     async def register_completed(self, url: str):
         """Registers a job as immediately completed (for cache hits)."""
         job = JobStatus(url)
-        job.complete()
+        await job.complete()  # 必须 await，因为 complete() 是 async 方法
         job.message = "Result Load from Cache"
         self.jobs[url] = job
         print(f"[INFO] Job registered as cached: {url}", flush=True)
 
     async def submit_job(self, url: str, file_path: str, user_ip: str = None):
-        # Concurrency Check
+        # 1. 检查该 URL 是否已有活跃任务（防止重复提交覆盖状态）
+        existing = self.jobs.get(url)
+        if existing and existing.status in ["queued", "running"]:
+            print(f"[INFO] Job already active for {url}, skipping duplicate submit", flush=True)
+            # 仍需更新 user_active_tasks 以便追踪
+            if user_ip:
+                self.user_active_tasks[user_ip] = url
+            return  # 复用现有任务，不重复入队
+        
+        # 2. 用户 IP 并发检查（同一 IP 不能同时运行不同 URL 的任务）
         if user_ip:
             current_active_url = self.user_active_tasks.get(user_ip)
             if current_active_url:
@@ -77,7 +90,7 @@ class JobManager:
             # Update active task
             self.user_active_tasks[user_ip] = url
 
-        # Create or Reset status
+        # 3. Create new job status
         job = JobStatus(url)
         self.jobs[url] = job
         
@@ -113,9 +126,9 @@ class JobManager:
     def is_active_task(self, url: str) -> bool:
         """Checks if a task specific to this URL is already running or queued."""
         if url in self.jobs:
-             status = self.jobs[url].status
-             if status in ["queued", "running"]:
-                 return True
+            status = self.jobs[url].status
+            if status in ["queued", "running"]:
+                return True
         return False
 
     def get_queue_info(self):
@@ -134,10 +147,10 @@ class JobManager:
                 print(f"[INFO] Worker starting job: {url}", flush=True)
                 
                 async def progress_callback(current, total, msg):
-                    job.update_progress(current, total, msg)
+                    await job.update_progress(current, total, msg)
 
                 await self.checker.run_check(file_path, progress_cb=progress_callback)
-                job.complete()
+                await job.complete()
                 
             except Exception as e:
                 print(f"[ERROR] Worker job failed: {e}", flush=True)
@@ -145,3 +158,9 @@ class JobManager:
             finally:
                 self.running_job_url = None
                 self.queue.task_done()
+                
+                # 清理该 URL 关联的 IP 记录，防止内存泄漏
+                ips_to_clean = [ip for ip, u in self.user_active_tasks.items() if u == url]
+                for ip in ips_to_clean:
+                    del self.user_active_tasks[ip]
+                    print(f"[INFO] Cleaned user_active_tasks for IP: {ip}", flush=True)

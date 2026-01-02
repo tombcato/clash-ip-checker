@@ -27,6 +27,12 @@ RUN curl -L -o clash.gz https://github.com/MetaCubeX/mihomo/releases/download/v1
 # Verify installation
 RUN clash -v
 
+# Pre-download GeoIP and GeoSite databases to avoid runtime timeout
+RUN mkdir -p /root/.config/mihomo && \
+    curl -L -o /root/.config/mihomo/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb && \
+    curl -L -o /root/.config/mihomo/geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat && \
+    curl -L -o /root/.config/mihomo/country.mmdb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb
+
 # Copy App
 COPY . .
 

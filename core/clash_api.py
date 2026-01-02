@@ -19,7 +19,7 @@ class ClashController:
         """Checks API availability."""
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.api_url}/version", headers=self.headers, timeout=2) as resp:
+                async with session.get(f"{self.api_url}/version", headers=self.headers, timeout=5) as resp:
                     return resp.status == 200
         except Exception:
             return False
@@ -36,7 +36,7 @@ class ClashController:
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.put(url, json=payload, headers=self.headers) as resp:
+                async with session.put(url, json=payload, headers=self.headers, timeout=30) as resp:
                     if resp.status == 204:
                         print(f"[INFO] Loaded config: {file_path}", flush=True)
                         await self.set_log_level("error")
@@ -46,7 +46,7 @@ class ClashController:
                         print(f"[ERROR] Failed to load config {file_path}: {resp.status} - {text}", flush=True)
                         return False
         except Exception as e:
-            print(f"[ERROR] API Error loading config: {e}", flush=True)
+            print(f"[ERROR] API Error loading config: {type(e).__name__}: {e}", flush=True)
             return False
 
     async def set_mode_global(self):
@@ -55,7 +55,7 @@ class ClashController:
         payload = {"mode": "global"}
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.patch(url, json=payload, headers=self.headers) as resp:
+                async with session.patch(url, json=payload, headers=self.headers, timeout=5) as resp:
                     return resp.status == 204
         except Exception as e:
             print(f"[ERROR] Error setting global mode: {e}", flush=True)
@@ -67,7 +67,7 @@ class ClashController:
         payload = {"log-level": level}
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.patch(url, json=payload, headers=self.headers) as resp:
+                async with session.patch(url, json=payload, headers=self.headers, timeout=5) as resp:
                     return resp.status == 204
         except Exception as e:
             print(f"[ERROR] Error setting log level: {e}", flush=True)
@@ -77,7 +77,7 @@ class ClashController:
         """Fetches all proxies."""
         try:
              async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.api_url}/proxies", headers=self.headers) as resp:
+                async with session.get(f"{self.api_url}/proxies", headers=self.headers, timeout=5) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         return data.get('proxies', {})
@@ -115,7 +115,7 @@ class ClashController:
         payload = {"mixed-port": port, "allow-lan": False} 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.patch(url, json=payload, headers=self.headers) as resp:
+                async with session.patch(url, json=payload, headers=self.headers, timeout=5) as resp:
                     if resp.status == 204:
                         print(f"[INFO] Enforced mixed-port: {port}", flush=True)
                         return True
@@ -129,7 +129,7 @@ class ClashController:
     async def get_mixed_port(self):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.api_url}/configs", headers=self.headers) as resp:
+                async with session.get(f"{self.api_url}/configs", headers=self.headers, timeout=5) as resp:
                     if resp.status == 200:
                         conf = await resp.json()
                         return conf.get('mixed-port') or conf.get('port') or 7890
