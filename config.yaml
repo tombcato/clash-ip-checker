@@ -18,4 +18,4 @@ skip_keywords:
   - "建议"
 
 # 网络请求超时时间 秒
-request_timeout: 5
+request_timeout: 10

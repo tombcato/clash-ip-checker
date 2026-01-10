@@ -6,7 +6,7 @@ import logging
 DEFAULT_CONFIG = {
     "api_url": "http://127.0.0.1:9090",
     "check_url": "https://my.123169.xyz/v1/info",
-    "request_timeout": 5,
+    "request_timeout": 10,
     "mixed_port": 7890,
     "user_agent": "ClashVerge/2.4.3 Mihomo/1.19.17",
     "skip_keywords": ["剩余", "到期", "有效期", "重置", "官网", "网址", "更新", "公告", "建议"],
