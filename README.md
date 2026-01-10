@@ -10,9 +10,10 @@
 
 
 一个针对 **Clash** (及兼容核心) 的自动化节点工具。它会自动遍历你的代理节点，通过 [IPPure](https://ippure.com/)或者[Ping0](https://ping0.cc/) 检测 IP 纯净度和相关属性，并重命名节点，添加实用的指标（IP 纯净度、Bot 比例(或共享人数)、IP属性/IP来源状态）`【🟢🟡 住宅|原生】`。
-
+效果展示：
 ![图片描述](assets/clash-node-checked.png)
-
+Web可视化配置检测：
+![alt text](assets/clash-web-check.png)
 ## 📅 更新日志 (Changelog)
 
 ### v2.0.0 (2025-01-11)
@@ -21,7 +22,7 @@
 - **智能降级**: 新增 `Fallback` 机制，例如：Ping0 失败时自动切换至 IPPure。
 - **极速默认**: 极速模式 (`fast_mode`) 默认开启，大幅提升批量检测效率。
 - **单点重测**: Web 界面支持对单个节点进行重新检测，方便复核。
-- **导出增强**: 支持检测结果的实时预览、编辑和一键导出，修复了导出顺序问题。
+- **导出增强**: 支持检测结果的实时预览、编辑和一键导出，一键导入Clash
 - **体验优化**: 自动清理 IP 缓存，防止结果残留；优化了端口检测和冲突处理。
 
 
@@ -68,7 +69,7 @@
     python web.py
     ```
     访问 http://127.0.0.1:8080 即可使用图形化界面进行配置和检测。
-    ![alt text](assets/clash-web-check.png)
+    
 4.  **命令行模式 (旧版)**
     - 修改 `config.yaml.example` 删除后缀重命名为 `config.yaml`。
     - 编辑 `config.yaml` 填入配置（Web 界面中也可直接设置）：
