@@ -136,10 +136,74 @@
                 <input type="text" id="url-input" placeholder="请在此粘贴您的订阅链接 (http://...)"
                     class="flex-1 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-gray-500 dark:placeholder-gray-600">
                 <button id="check-btn" onclick="startCheck()"
-                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-transform transform active:scale-95 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50">
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-transform transform active:scale-95 shadow-lg shadow-blue-500/30 dark:shadow-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                     开始检测
                 </button>
+                <button id="stop-btn" onclick="stopCheck()"
+                    class="hidden bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-xl transition-transform transform active:scale-95 shadow-lg shadow-red-500/30 dark:shadow-red-900/50">
+                    停止
+                </button>
             </div>
+
+            <!-- Advanced Settings Toggle -->
+            <div class="pt-2">
+                <button type="button" onclick="toggleSettings()"
+                    class="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 focus:outline-none">
+                    <svg id="settings-icon" class="w-4 h-4 mr-1 transform transition-transform" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                    高级设置 (Advanced Settings)
+                </button>
+                <div id="settings-panel"
+                    class="hidden mt-3 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                    <!-- Source Selection -->
+                    <div class="flex flex-col space-y-1">
+                        <label class="text-gray-600 dark:text-gray-400 font-semibold">检测源 (Source)</label>
+                        <select id="setting-source"
+                            class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                            <option value="ping0" selected>Ping0 (Default)</option>
+                            <option value="ippure">IPPure</option>
+                        </select>
+                    </div>
+
+                    <!-- Fallback Toggle -->
+                    <div class="flex flex-col space-y-1">
+                        <label class="text-gray-600 dark:text-gray-400 font-semibold">自动降级 (Fallback)</label>
+                        <div class="flex items-center h-full">
+                            <input type="checkbox" id="setting-fallback"
+                                class="w-4 h-4 text-blue-600 rounded bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500"
+                                checked>
+                            <span class="ml-2 text-gray-500 text-xs">主源失败时尝试备用源</span>
+                        </div>
+                    </div>
+
+                    <!-- Skip Keywords -->
+                    <div class="flex flex-col space-y-1 md:col-span-2">
+                        <label class="text-gray-600 dark:text-gray-400 font-semibold">跳过关键词 (包含关键词的节点将被跳过)</label>
+                        <input type="text" id="setting-skip" placeholder="剩余,重置,到期,有效期..."
+                            value="剩余,重置,到期,有效期,官网,网址,更新,公告,建议"
+                            class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <!-- Max Age -->
+                    <div class="flex flex-col space-y-1">
+                        <label class="text-gray-600 dark:text-gray-400 font-semibold">缓存时间（只返回缓存结果）</label>
+                        <input type="number" id="setting-max-age" value="3600" min="0"
+                            class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                    <!-- Timeout -->
+                    <div class="flex flex-col space-y-1">
+                        <label class="text-gray-600 dark:text-gray-400 font-semibold">请求超时 (每个节点检测最大时间)</label>
+                        <input type="number" id="setting-timeout" value="10" min="1" max="60"
+                            class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+
+                </div>
+            </div>
+
             <p id="error-msg" class="text-red-500 dark:text-red-400 text-sm hidden"></p>
         </div>
     </div>
@@ -322,17 +386,55 @@
             }
         });
 
+
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            const icon = document.getElementById('settings-icon');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                icon.style.transform = "rotate(180deg)";
+            } else {
+                panel.classList.add('hidden');
+                icon.style.transform = "rotate(0deg)";
+            }
+        }
+
         async function startCheck() {
+            if (checkBtn.disabled) return;
+
             const url = urlInput.value.trim();
             if (!url) return showError("请输入有效的订阅链接");
 
             errorMsg.classList.add('hidden');
+            actionArea.classList.add('hidden'); // Clear previous results
+            logWindow.innerHTML = ''; // Clear logs explicitly to prevent confusion
             checkBtn.disabled = true;
-            checkBtn.innerText = "正在请求...";
+            checkBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 请求中...';
+
+            // Generate Request ID to prevent race conditions (cancel affecting new job)
+            const requestId = crypto.randomUUID();
+            localStorage.setItem('active_task_id', requestId);
+
+            // Gather Settings
+            const source = document.getElementById('setting-source').value;
+            const fallback = document.getElementById('setting-fallback').checked;
+            const skip = document.getElementById('setting-skip').value.trim();
+            const maxAge = document.getElementById('setting-max-age').value;
+            const timeout = document.getElementById('setting-timeout').value;
+
+            // Build Query Params
+            const params = new URLSearchParams();
+            params.append("url", url);
+            params.append("request_id", requestId);
+            params.append("source", source);
+            params.append("fallback", fallback);
+            if (skip) params.append("skip_keywords", skip);
+            if (maxAge) params.append("max_age", maxAge);
+            if (timeout) params.append("request_timeout", timeout);
 
             // 1. Trigger Backend
             try {
-                const res = await fetch(`/check?url=${encodeURIComponent(url)}`);
+                const res = await fetch(`/check?${params.toString()}`);
 
                 if (res.status === 429) {
                     // Too many requests
@@ -362,6 +464,7 @@
 
                 localStorage.setItem('active_task_url', url);
                 showStatusView(url);
+                toggleStopBtn(true);
                 connectStream(url);
 
             } catch (e) {
@@ -371,13 +474,49 @@
             }
         }
 
+        async function stopCheck() {
+            const url = localStorage.getItem('active_task_url');
+            if (!url) return;
+
+            const requestId = localStorage.getItem('active_task_id');
+
+            const stopBtn = document.getElementById('stop-btn');
+            stopBtn.disabled = true;
+            stopBtn.innerText = "停止中...";
+
+            try {
+                let cancelUrl = `/cancel?url=${encodeURIComponent(url)}`;
+                if (requestId) cancelUrl += `&request_id=${requestId}`;
+                await fetch(cancelUrl, { method: 'POST' });
+            } catch (e) {
+                console.error("Stop failed", e);
+            }
+        }
+
+        function toggleStopBtn(show) {
+            const startBtn = document.getElementById('check-btn');
+            const stopBtn = document.getElementById('stop-btn');
+
+            if (show) {
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                stopBtn.disabled = false;
+                stopBtn.innerText = "停止";
+            } else {
+                startBtn.classList.remove('hidden');
+                startBtn.disabled = false;
+                startBtn.innerText = "开始检测";
+                stopBtn.classList.add('hidden');
+            }
+        }
+
         function showStatusView(url) {
             statusPanel.classList.remove('hidden');
             taskUrlDisplay.innerText = url;
             urlInput.value = url;
             // Disable input
             urlInput.disabled = true;
-            checkBtn.classList.add('hidden');
+            toggleStopBtn(true);
         }
 
         function resetView() {
@@ -386,9 +525,7 @@
             statusPanel.classList.add('hidden');
             urlInput.disabled = false;
             urlInput.value = "";
-            checkBtn.classList.remove('hidden');
-            checkBtn.disabled = false;
-            checkBtn.innerText = "开始检测";
+            toggleStopBtn(false);
             actionArea.classList.add('hidden');
             logWindow.innerHTML = "";
             progressBar.style.width = "0%";
@@ -456,6 +593,9 @@
                             div.className = "mt-1 mb-1 py-1 text-green-300 font-mono border-l-4 border-green-500 pl-2 bg-green-900/20";
                             // Replace text for cleaner look if desired, or just style it
                             div.innerHTML = `<span class="text-xs text-green-700 opacity-50">[${time}]</span> ${status.message}`;
+                        } else if (status.message.includes("Cancelled")) {
+                            div.className = "mt-1 mb-1 py-1 text-yellow-300 font-mono border-l-4 border-yellow-500 pl-2 bg-yellow-900/20";
+                            div.innerHTML = `<span class="text-xs text-yellow-700 opacity-50">[${time}]</span> ${status.message}`;
                         } else {
                             div.innerHTML = `<span class="text-xs text-gray-600">[${time}]</span> ${status.message}`;
                         }
@@ -465,19 +605,28 @@
                     }
                 }
 
-                // Done
-                if (status.status === 'completed') {
+                // Done or Cancelled
+                if (status.status === 'completed' || status.status === 'cancelled') {
                     evtSource.close();
                     actionArea.classList.remove('hidden');
+                    toggleStopBtn(false);
 
                     const checkLink = `${window.location.origin}/check?url=${encodeURIComponent(url)}`;
                     const downloadLink = `${window.location.origin}/download?url=${encodeURIComponent(url)}`;
 
                     const resultInput = document.getElementById('result-url');
-                    if (resultInput) resultInput.value = checkLink;
 
-                    downloadBtn.href = downloadLink;
-                    downloadBtn.style.display = 'inline-flex';
+                    if (status.status === 'cancelled') {
+                        statusBadge.innerText = "已取消";
+                        statusBadge.className = "px-3 py-1 rounded text-xs font-bold bg-yellow-700 text-yellow-200";
+                        if (resultInput) resultInput.value = "Task Cancelled";
+                        downloadBtn.href = downloadLink;
+                        downloadBtn.style.display = 'inline-flex';
+                    } else {
+                        if (resultInput) resultInput.value = checkLink;
+                        downloadBtn.href = downloadLink;
+                        downloadBtn.style.display = 'inline-flex';
+                    }
                 }
 
                 // Error
@@ -485,6 +634,7 @@
                     evtSource.close();
                     actionArea.classList.remove('hidden');
                     downloadBtn.style.display = 'none'; // Hide download
+                    toggleStopBtn(false);
 
                     const resultInput = document.getElementById('result-url');
                     if (resultInput) resultInput.value = "Error: Check logs";
@@ -503,7 +653,7 @@
 
                 // 检查是否应该重连（任务未完成时才重连）
                 const lastStatus = statusBadge.innerText;
-                if (lastStatus === "检测完成" || lastStatus === "出错了" || lastStatus === "已过期") {
+                if (lastStatus === "检测完成" || lastStatus === "出错了" || lastStatus === "已过期" || lastStatus === "已取消") {
                     console.log("Task already finished, not reconnecting.");
                     return;
                 }

@@ -2,7 +2,7 @@
 max_queue_size: 10  # 最大同时处理的任务数 (建议 5-20)
 
 # 缓存策略
-max_age: 3600      # 缓存有效期 (秒), 0 表示不缓存 (每次都重新检测)
+max_age: 360      # 缓存有效期 (秒), 0 表示不缓存 (每次都重新检测)
 
 
 # 过滤设置
@@ -19,3 +19,10 @@ skip_keywords:
 
 # 网络请求超时时间 秒
 request_timeout: 10
+
+# 优先数据源 (ping0 或 ippure), 默认 ping0
+source: "ping0"
+
+# 是否允许降级 (True/False), 默认 True
+# True: 主源失败时尝试备用源
+fallback: true

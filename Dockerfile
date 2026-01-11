@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Mihomo (Clash Meta)
 # Using a fixed release for stability. Adjust arch if needed (amd64 assumed)
-RUN curl -L -o clash.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.19.17/mihomo-linux-amd64-v1.19.17.gz && \
+RUN curl -L -o clash.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.19.18/mihomo-linux-amd64-v1.19.18.gz && \
     gunzip clash.gz && \
     chmod +x clash && \
     mv clash /usr/local/bin/clash
