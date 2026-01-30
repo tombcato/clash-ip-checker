@@ -7,7 +7,7 @@ class IPPureSource(BaseSource):
     def name(self) -> str:
         return "ippure"
 
-    async def check(self, proxy_url: str) -> dict:
+    async def check(self, proxy_url: str, timeout: int = None) -> dict:
         url = config.check_url # Default: https://my.123169.xyz/v1/info (Mirror of IPPure)
         
         result = {
@@ -18,7 +18,8 @@ class IPPureSource(BaseSource):
         proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
 
         try:
-            async with AsyncSession(proxies=proxies, impersonate="chrome110", timeout=5) as session:
+            req_timeout = timeout or config.request_timeout
+            async with AsyncSession(proxies=proxies, impersonate="chrome110", timeout=req_timeout) as session:
                 resp = await session.get(url)
                 if resp.status_code == 200:
                     data = resp.json()

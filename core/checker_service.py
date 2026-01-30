@@ -74,7 +74,7 @@ class CheckerService:
                 # I'll update BaseSource later or hack it here?
                 # For now let's focus on source selection logic which IS here.
                 
-                res = await source.check(proxy_url)
+                res = await source.check(proxy_url, timeout=request_timeout)
                 
                 if res.get("error"):
                     last_error = res["error"]
@@ -140,13 +140,12 @@ class CheckerService:
         try:
             # 1. Wait for API
             if not await self.clash.version():
-                print("LOG: Clash API not reachable.", flush=True)
-                return
+                raise ConnectionError("Clash API unreachable. Is the backend running?")
 
             # 2. Get absolute path for Clash (Docker: mapped paths must work)
             abs_path = os.path.abspath(file_path)
             if not await self.clash.load_config(abs_path):
-                return
+                raise ValueError("Failed to load config into Clash. Check YAML syntax.")
             
             await asyncio.sleep(1) # Wait reload
             
@@ -164,7 +163,7 @@ class CheckerService:
             # 3. Get Proxies
             all_proxies = await self.clash.get_proxies()
             if not all_proxies:
-                return
+                raise ValueError("No proxies found in the configuration.")
 
             # Parse local YAML to preserve structure and update names in place
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -260,5 +259,6 @@ class CheckerService:
 
         except Exception as e:
             print(f"[ERROR] Global Check Error: {e}", flush=True)
+            raise e
         finally:
             self.current_file = None

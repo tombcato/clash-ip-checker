@@ -168,7 +168,7 @@ class JobManager:
                     print(f"[INFO] Job {url} finished (cancelled).", flush=True)
                 
             except Exception as e:
-                print(f"[ERROR] Worker job failed: {e}", flush=True)
+                print(f"[ERROR] Worker job failed (Caught in JobManager): {e}", flush=True)
                 if 'job' in locals():
                      job.fail(str(e)) # Use job var safely
                 # If job wasn't assigned (e.g. queue get fail), we have bigger issues

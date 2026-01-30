@@ -146,7 +146,7 @@
             </div>
 
             <!-- Advanced Settings Toggle -->
-            <div class="pt-2">
+            <div class="pt-2" id="advanced-settings-container">
                 <button type="button" onclick="toggleSettings()"
                     class="flex items-center text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 focus:outline-none">
                     <svg id="settings-icon" class="w-4 h-4 mr-1 transform transition-transform" fill="none"
@@ -335,9 +335,26 @@
 
         // Initialize immediately
         initTheme();
+        initConfig(); // Fetch UI config
 
         // Wait for load to ensure DOM is ready
         window.addEventListener('load', fetchGitHubStars);
+
+        async function initConfig() {
+            try {
+                const res = await fetch('/api/config');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.show_advanced_settings === false) {
+                        const container = document.getElementById('advanced-settings-container');
+                        if (container) container.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                console.log("Config fetch failed, using defaults");
+            }
+        }
+
 
         function fetchGitHubStars() {
             const cacheKey = 'github_stars';
@@ -427,12 +444,18 @@
             const requestId = generateUUID();
             localStorage.setItem('active_task_id', requestId);
 
-            // Gather Settings
-            const source = document.getElementById('setting-source').value;
-            const fallback = document.getElementById('setting-fallback').checked;
-            const skip = document.getElementById('setting-skip').value.trim();
-            const maxAge = document.getElementById('setting-max-age').value;
-            const timeout = document.getElementById('setting-timeout').value;
+            // Gather Settings (Add checks since they might be hidden/null)
+            const sourceEl = document.getElementById('setting-source');
+            const fallbackEl = document.getElementById('setting-fallback');
+            const skipEl = document.getElementById('setting-skip');
+            const maxAgeEl = document.getElementById('setting-max-age');
+            const timeoutEl = document.getElementById('setting-timeout');
+
+            const source = sourceEl ? sourceEl.value : "ping0";
+            const fallback = fallbackEl ? fallbackEl.checked : true;
+            const skip = skipEl ? skipEl.value.trim() : "剩余,重置,到期,有效期,官网,网址,更新,公告,建议";
+            const maxAge = maxAgeEl ? maxAgeEl.value : 3600;
+            const timeout = timeoutEl ? timeoutEl.value : 15;
 
             // Build Query Params
             const params = new URLSearchParams();

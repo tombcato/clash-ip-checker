@@ -26,3 +26,6 @@ source: "ping0"
 # 是否允许降级 (True/False), 默认 True
 # True: 主源失败时尝试备用源
 fallback: true
+
+# 是否显示高级设置
+SHOW_ADVANCED_SETTINGS: false

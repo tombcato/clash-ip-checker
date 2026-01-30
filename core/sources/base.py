@@ -7,7 +7,7 @@ class BaseSource(ABC):
         pass
 
     @abstractmethod
-    async def check(self, proxy_url: str) -> dict:
+    async def check(self, proxy_url: str, timeout: int = None) -> dict:
         """
         Check IP information using the proxy.
         Returns a dict with format:

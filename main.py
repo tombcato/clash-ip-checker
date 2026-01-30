@@ -112,6 +112,11 @@ def save_file_atomic(file_path: str, content: bytes):
             os.remove(tmp_path)
         return False
 
+@app.get("/api/config")
+async def get_ui_config():
+    """Exposes UI configuration based on environment variables or config.yaml."""
+    return {"show_advanced_settings": config.show_advanced_settings}
+
 @app.get("/api/status")
 async def get_status_json(url: str = Query(..., description="Subscription URL")):
     """Internal JSON status API."""

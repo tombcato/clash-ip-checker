@@ -23,12 +23,13 @@ class Ping0Source(BaseSource):
         except Exception:
             return "❓"
             
-    async def check(self, proxy_url: str) -> dict:
+    async def check(self, proxy_url: str, timeout: int = None) -> dict:
         url = "https://ping0.cc/"
         proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
         
         try:
-            async with AsyncSession(proxies=proxies, impersonate="chrome124", timeout=5) as session:
+            req_timeout = timeout or config.request_timeout
+            async with AsyncSession(proxies=proxies, impersonate="chrome124", timeout=req_timeout) as session:
                 resp = await session.get(url)
                 
                 if resp.status_code != 200:

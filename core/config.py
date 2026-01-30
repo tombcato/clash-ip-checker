@@ -68,5 +68,19 @@ class Config:
     @property
     def fallback(self): return self._config.get("fallback", True)
 
+    @property
+    def show_advanced_settings(self):
+        # Support both lowercase (standard) and uppercase (user input) keys, and Env Var (highest priority?)
+        # Let's say: Env Var > Config > Default
+        env_val = os.getenv("SHOW_ADVANCED_SETTINGS")
+        if env_val is not None:
+            return env_val.lower() == "true"
+            
+        # Check config (User put ALL CAPS in yaml)
+        if "SHOW_ADVANCED_SETTINGS" in self._config:
+            return bool(self._config["SHOW_ADVANCED_SETTINGS"])
+        
+        return self._config.get("show_advanced_settings", True)
+
 # Singleton instance
 config = Config()
