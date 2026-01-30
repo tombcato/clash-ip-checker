@@ -203,8 +203,11 @@ class JobManager:
                 # Check status
                 active_job = self.jobs.get(current_active_url)
                 if active_job and active_job.status in ['queued', 'running'] and current_active_url != url:
-                     # Allow re-submitting same URL (idempotent), but reject different one
-                     raise ValueError(f"You already have a pending task. Please wait for it to finish.")
+                     print(f"[INFO] Auto-cancelling previous task {current_active_url} for user {user_ip} to start {url}", flush=True)
+                     await active_job.cancel()
+                     # We rely on the worker loop to cleanup user_active_tasks, but that's async.
+                     # We might need to forcefully overwrite user_active_tasks[user_ip] later, 
+                     # but let's assume update below covers it.
             
             # Update active task
             self.user_active_tasks[user_ip] = url
