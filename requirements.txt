@@ -1,8 +1,45 @@
-fastapi
-uvicorn[standard]
-jinja2
-pydantic
-aiohttp
-playwright
-curl_cffi
-ruamel.yaml
+# Direct dependencies — pinned to known-working versions
+fastapi==0.141.1
+starlette==1.6.0
+uvicorn[standard]==0.53.0
+Jinja2==3.1.6
+pydantic==2.13.5
+aiohttp==3.14.3
+playwright==1.63.0
+curl_cffi==0.16.3
+ruamel.yaml==0.19.1
+PyYAML==6.0.3
+
+# Transitive dependencies — also pinned to prevent silent breaking upgrades
+aiohappyeyeballs==2.7.1
+aiosignal==1.4.0
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+attrs==26.1.0
+certifi==2026.7.22
+cffi==2.1.1
+click==8.5.0
+frozenlist==1.8.0
+greenlet==3.5.6
+h11==0.16.0
+httptools==0.8.0
+idna==3.19
+MarkupSafe==3.0.3
+multidict==6.8.0
+packaging==26.3
+propcache==0.5.4
+pycparser==3.0
+pydantic_core==2.46.5
+pyee==13.0.1
+python-dotenv==1.2.3
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+watchfiles==1.2.0
+websockets==17.1
+yarl==1.25.1
+
+# Runtime deps that only appear on other Python versions / platforms
+async-timeout==5.0.1; python_version < "3.11"
+exceptiongroup==1.3.1; python_version < "3.11"
+uvloop==0.22.1; sys_platform != "win32" and sys_platform != "cygwin" and platform_python_implementation != "PyPy"
